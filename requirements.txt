@@ -1,9 +1,17 @@
+# FastAPI + server
 fastapi[standard]
 uvicorn[standard]
-python-multipart
+
+# File handling
 pypdf
-faiss-cpu
-sentence-transformers
-langdetect
-transformers
+aiofiles
+python-multipart
+
+# ML stack (PyTorch + Hugging Face)
 torch --index-url https://download.pytorch.org/whl/cpu
+transformers
+sentence-transformers
+
+# Vector DBs
+faiss-cpu
+annoy
