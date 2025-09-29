@@ -1,52 +1,36 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Contract AI Assistant – Demo</title>
-<meta name="description" content="Chinese + English Contract AI Assistant Demo (Upload PDF, Ask, Get Cited Answers)" />
+<title>合同智能助手 (Contract AI Assistant) – Demo</title>
+<meta name="description" content="上傳合同 PDF → 提問 → 獲取答案與引用。Bilingual UI (中文/English), RAG + FAISS/Annoy, FastAPI backend." />
 
 <style>
   :root{
-    --bg:#0b1120;          /* slate-900 */
-    --card:#0f172a;        /* slate-800 */
-    --ink:#e5e7eb;         /* gray-200 */
-    --muted:#94a3b8;       /* slate-400 */
-    --brand:#60a5fa;       /* blue-400 */
-    --accent:#22d3ee;      /* cyan-400 */
-    --ok:#34d399;          /* green-400 */
-    --warn:#fbbf24;        /* amber-400 */
-    --err:#f87171;         /* red-400 */
+    --bg:#0b1120; --card:#0f172a; --ink:#e5e7eb; --muted:#94a3b8;
+    --brand:#60a5fa; --accent:#22d3ee; --ok:#34d399; --warn:#fbbf24; --err:#f87171;
     --shadow:0 15px 60px rgba(0,0,0,.35);
   }
-
-  html,body{height:100%; background:radial-gradient(1200px 700px at 10% -10%, rgba(34,211,238,.10), transparent 60%), radial-gradient(900px 600px at 110% 10%, rgba(96,165,250,.12), transparent 60%), var(--bg); margin:0; color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, "Noto Sans", "PingFang SC", "Microsoft Yahei", Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
+  html,body{
+    height:100%;
+    background:
+      radial-gradient(1200px 700px at 10% -10%, rgba(34,211,238,.10), transparent 60%),
+      radial-gradient(900px 600px at 110% 10%, rgba(96,165,250,.12), transparent 60%),
+      var(--bg);
+    margin:0; color:var(--ink);
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, "Noto Sans", "PingFang SC", "Microsoft Yahei", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  }
   a{color:var(--brand); text-decoration:none}
   a:hover{text-decoration:underline}
 
-  .wrap{
-    max-width:1100px; margin:40px auto; padding:0 16px;
-  }
+  .wrap{max-width:1100px; margin:40px auto; padding:0 16px;}
+  .hero{display:flex; gap:18px; align-items:center; flex-wrap:wrap; margin:10px 0 24px;}
+  .logo{width:48px; height:48px; border-radius:14px; background:linear-gradient(135deg, var(--brand), var(--accent)); box-shadow:0 8px 28px rgba(34,211,238,.25);}
+  .title{font-size: clamp(22px, 4vw, 34px); font-weight:800; letter-spacing:.3px;}
+  .subtitle{color:var(--muted); margin-top:4px; line-height:1.3;}
 
-  .hero{
-    display:flex; gap:18px; align-items:center; flex-wrap:wrap;
-    margin:10px 0 24px;
-  }
-  .logo{
-    width:48px; height:48px; border-radius:14px; background:
-      linear-gradient(135deg, var(--brand), var(--accent));
-    box-shadow:0 8px 28px rgba(34,211,238,.25);
-  }
-  .title{
-    font-size: clamp(22px, 4vw, 34px); font-weight:800; letter-spacing:.3px;
-  }
-  .subtitle{
-    color:var(--muted); margin-top:4px; line-height:1.3;
-  }
-
-  .grid{
-    display:grid; grid-template-columns: 1.2fr .8fr; gap:18px;
-  }
+  .grid{display:grid; grid-template-columns: 1.2fr .8fr; gap:18px;}
   @media (max-width: 960px){ .grid{ grid-template-columns: 1fr; } }
 
   .card{
@@ -64,10 +48,8 @@
   .card .bd{ padding:18px; }
 
   .row{ display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin:12px 0; }
-  .row label{ font-size:14px; color:var(--muted); min-width:120px; }
-  input[type="file"]{
-    color:var(--ink);
-  }
+  .row label{ font-size:14px; color:var(--muted); min-width:170px; }
+  input[type="file"]{ color:var(--ink); }
 
   .btn{
     appearance:none; border:none; outline:none; cursor:pointer;
@@ -78,29 +60,18 @@
   }
   .btn:hover{ transform: translateY(-1px); }
   .btn:active{ transform: translateY(0); box-shadow:0 6px 18px rgba(96,165,250,.2);}
-  .btn.secondary{
-    background:transparent; color:var(--ink); border:1px solid rgba(255,255,255,.14);
-    box-shadow:none; font-weight:700;
-  }
+  .btn.secondary{ background:transparent; color:var(--ink); border:1px solid rgba(255,255,255,.14); box-shadow:none; font-weight:700; }
 
-  .field{
-    position:relative;
-  }
+  .field{ position:relative; }
   .input{
     width:100%; font-size:16px; color:var(--ink);
     background: rgba(2,6,23,.6); border:1px solid rgba(255,255,255,.08);
     border-radius:12px; padding:12px 14px; outline:none;
     box-shadow: inset 0 0 0 1px rgba(255,255,255,.02);
   }
-  .input:focus{
-    border-color: rgba(96,165,250,.5);
-    box-shadow:0 0 0 3px rgba(96,165,250,.18);
-  }
+  .input:focus{ border-color: rgba(96,165,250,.5); box-shadow:0 0 0 3px rgba(96,165,250,.18); }
 
-  .meta{
-    display:flex; gap:10px; flex-wrap:wrap; margin:8px 0 0;
-    color:var(--muted); font-size:13px;
-  }
+  .meta{ display:flex; gap:10px; flex-wrap:wrap; margin:8px 0 0; color:var(--muted); font-size:13px; }
   .badge{
     display:inline-flex; align-items:center; gap:6px;
     padding:6px 10px; border-radius:999px; font-weight:700;
@@ -115,28 +86,15 @@
     background: rgba(2,6,23,.6); border:1px solid rgba(255,255,255,.08);
     border-radius:12px; padding:14px; margin-top:6px;
   }
-
-  .cite{
-    margin-top:14px; display:grid; gap:10px;
-  }
-  .cite .item{
-    background: rgba(2,6,23,.65);
-    border:1px solid rgba(255,255,255,.1);
-    border-radius:12px; padding:12px;
-  }
+  .cite{ margin-top:14px; display:grid; gap:10px; }
+  .cite .item{ background: rgba(2,6,23,.65); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:12px; }
   .item .top{ display:flex; gap:8px; align-items:center; color:var(--muted); font-size:13px; margin-bottom:6px; }
   .item .top b{ color:var(--ink); }
   .item .excerpt{ white-space:pre-wrap; font-size:14px; line-height:1.5; }
 
-  .foot{
-    margin-top:22px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; color:var(--muted); font-size:12px;
-  }
+  .foot{ margin-top:22px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; color:var(--muted); font-size:12px; }
 
-  .spinner{
-    width:18px; height:18px; border-radius:50%;
-    border:3px solid rgba(255,255,255,.24); border-top-color:var(--brand);
-    animation:spin 1s linear infinite; display:inline-block; vertical-align:-3px;
-  }
+  .spinner{ width:18px; height:18px; border-radius:50%; border:3px solid rgba(255,255,255,.24); border-top-color:var(--brand); animation:spin 1s linear infinite; display:inline-block; vertical-align:-3px; }
   @keyframes spin{ to{ transform: rotate(360deg);} }
 
   .right .note{
@@ -145,10 +103,7 @@
     border:1px dashed rgba(255,255,255,.12);
     padding:10px 12px; border-radius:12px;
   }
-
-  .copy{
-    position:absolute; right:8px; top:8px; font-size:12px; padding:6px 10px; opacity:.85;
-  }
+  .copy{ position:absolute; right:8px; top:8px; font-size:12px; padding:6px 10px; opacity:.85; }
 </style>
 </head>
 <body>
@@ -156,8 +111,8 @@
     <div class="hero">
       <div class="logo"></div>
       <div>
-        <div class="title">Chinese + English Contract AI Assistant</div>
-        <div class="subtitle">Upload a contract (PDF) → Ask a question → Get a cited answer. Multilingual (中文/English), RAG + FAISS, FastAPI backend.</div>
+        <div class="title">合同智能助手 (Contract AI Assistant)</div>
+        <div class="subtitle">上傳合同 (PDF) → 提問 → 獲取答案與引用 (Upload contract → Ask → Get cited answer). 支援中英雙語 / RAG + FAISS/Annoy / FastAPI 後端</div>
       </div>
     </div>
 
@@ -165,76 +120,80 @@
       <!-- Left: Interaction -->
       <div class="card">
         <div class="hd">
-          <h3>Demo Console</h3>
+          <h3>演示台 (Demo Console)</h3>
           <div class="meta" id="meta">
-            <span class="badge" id="healthBadge">API: checking…</span>
-            <span class="badge" id="langBadge">Doc: —</span>
+            <span class="badge" id="healthBadge">API：檢查中 (checking…)</span>
+            <span class="badge" id="langBadge">文件語言 / Doc: —</span>
             <span class="badge" id="docBadge">doc_id: —</span>
           </div>
         </div>
         <div class="bd">
           <!-- Upload -->
           <div class="row">
-            <label>1) Upload Contract (PDF)</label>
+            <label>1) 上傳合同 (Upload Contract, PDF)</label>
             <input id="file" type="file" accept="application/pdf" />
-            <button class="btn" id="btnUpload">Upload</button>
+            <button class="btn" id="btnUpload">上傳 (Upload)</button>
           </div>
 
           <!-- Ask -->
           <div class="row">
-            <label>2) Ask a Question</label>
+            <label>2) 提問 (Ask a Question)</label>
             <div class="field" style="flex:1; position:relative;">
-              <textarea id="q" class="input" rows="3" placeholder="e.g., 中文：這份保單的主要不保範圍是什麼？  /  English: What are the main exclusions?"></textarea>
-              <button class="btn secondary copy" id="btnExamples">Examples</button>
+              <textarea id="q" class="input" rows="3" placeholder="例如/eg：中文：這份保單的主要不保範圍是什麼？  /  English: What are the main exclusions?"></textarea>
+              <button class="btn secondary copy" id="btnExamples">示例 (Examples)</button>
             </div>
-            <button class="btn" id="btnAsk">Ask</button>
+            <button class="btn" id="btnAsk">詢問 (Ask)</button>
           </div>
 
           <!-- Answer -->
           <div class="row" style="align-items:stretch;">
-            <label>Answer</label>
+            <label>答案 (Answer)</label>
             <div style="flex:1; position:relative;">
-              <pre id="answer" class="answer">(Upload a PDF, then ask a natural-language question.)</pre>
+              <pre id="answer" class="answer">先上傳 PDF，再提出問題。
+(Upload a PDF, then ask a question.)</pre>
             </div>
           </div>
 
           <!-- Citations -->
           <div class="row" style="align-items:flex-start;">
-            <label>Sources</label>
+            <label>來源 (Sources)</label>
             <div class="cite" id="cite"></div>
           </div>
 
           <div class="foot">
-            <span>Tip: If the answer text looks garbled for some Chinese PDFs, rely on the citations (raw extracted text). OCR can be added later for perfect glyphs.</span>
+            <span>提示 (Tip)：如果部分中文 PDF 文字顯示異常，請以右側「來源」片段為準。後續可加入 OCR 以改善。 (If Chinese text looks garbled, rely on the source snippets; OCR can be added later.)</span>
           </div>
         </div>
       </div>
 
       <!-- Right: Helper panel -->
       <div class="card right">
-        <div class="hd"><h3>Quick Notes</h3></div>
+        <div class="hd"><h3>使用說明 (Quick Notes)</h3></div>
         <div class="bd">
           <div class="note">
-            <b>How it works:</b><br>
-            1) PDF → extract text → chunk → embed → FAISS index.<br>
-            2) Question → embed → retrieve top-k chunks.<br>
-            3) Summarize plain answer + show source excerpts.<br><br>
-            <b>Language:</b> Document language auto-detected (CJK ratio + langdetect). English docs use English models; Chinese docs use multilingual + zh-summarizer.<br><br>
-            <b>Privacy:</b> Files are stored locally on the server (demo). For production, add auth and per-tenant namespacing.
+            <b>運作方式 (How it works):</b><br>
+            1) PDF → 提取文字 → 分段 → 向量化 → 建立索引 (FAISS/Annoy).<br>
+            2) 問題 → 向量化 → 召回相關片段 (top-k)。<br>
+            3) 回答 + 展示來源片段 (中文暫以片段直出；英文支援摘要)。<br><br>
+
+            <b>語言 (Language):</b> 自動檢測文件語言 (中/英)。英文文件採用英文摘要模型；中文目前直接回傳片段，保障穩定性與效能。<br><br>
+
+            <b>隱私 (Privacy):</b> 檔案存於伺服器示範空間。正式版可加入帳號登入、租戶隔離與到期清理策略。
           </div>
 
           <div style="height:14px"></div>
 
           <div class="note">
-            <b>Good Chinese questions:</b><br>
+            <b>中文提問範例 (Good Chinese questions):</b><br>
             • 這份保單涵蓋多少種嚴重病況？<br>
             • 主要不保範圍有哪些？<br>
             • 退保時可以拿回什麼價值？<br>
             • 確診受保的嚴重病況時是否一筆過支付當時保額的100%？<br><br>
-            <b>Good English questions:</b><br>
+
+            <b>英文提問範例 (Good English questions):</b><br>
             • What are the main exclusions?<br>
             • On surrender, what cash values are payable?<br>
-            • On diagnosis, is 100% of the prevailing sum insured paid?<br>
+            • On diagnosis, is 100% of the prevailing sum insured paid as a lump sum?<br>
           </div>
         </div>
       </div>
@@ -254,34 +213,32 @@
   const btnAsk = el('btnAsk');
   const btnExamples = el('btnExamples');
 
-  // --- Helpers
   const setBadge = (node, text, cls) => {
     node.className = 'badge' + (cls ? ' ' + cls : '');
     node.textContent = text;
   };
 
-  // Check API health on load
+  // Init
   (async function init(){
     try{
       const res = await fetch('/health');
       if(!res.ok) throw new Error('bad status');
       const j = await res.json();
-      setBadge(healthBadge, 'API: ' + (j.status || 'ok'), 'ok');
-      // Populate last_doc if exists
+      setBadge(healthBadge, 'API：' + (j.status || 'ok'), 'ok');
       const last = await fetch('/last_doc').then(r=>r.json());
       if(last.last_doc_id){
         setBadge(docBadge, 'doc_id: ' + last.last_doc_id);
       }
     }catch(e){
-      setBadge(healthBadge, 'API: offline', 'err');
+      setBadge(healthBadge, 'API：離線 (offline)', 'err');
     }
   })();
 
   btnUpload.addEventListener('click', async ()=>{
     const f = fileEl.files && fileEl.files[0];
-    if(!f){ alert('Please choose a PDF file first.'); return; }
-    btnUpload.disabled = true; btnUpload.innerHTML = '<span class="spinner"></span> Uploading…';
-    setBadge(langBadge, 'Doc: —');
+    if(!f){ alert('請先選擇 PDF 檔案 / Please choose a PDF file.'); return; }
+    btnUpload.disabled = true; btnUpload.innerHTML = '<span class="spinner"></span> 上傳中… (Uploading…)';
+    setBadge(langBadge, '文件語言 / Doc: —');
     setBadge(docBadge, 'doc_id: —');
 
     try{
@@ -291,24 +248,24 @@
       if(!res.ok) throw new Error('Upload failed');
       const j = await res.json();
 
-      setBadge(langBadge, 'Doc: ' + (j.lang || '—'), (j.lang==='zh'?'ok':''));
+      setBadge(langBadge, '文件語言 / Doc: ' + (j.lang || '—'), (j.lang==='zh'?'ok':''));
       setBadge(docBadge, 'doc_id: ' + j.doc_id);
-      answerEl.textContent = `Uploaded: ${j.filename}\nPages: ${j.pages}\nChunks: ${j.chunks}\nLanguage: ${j.lang}\n\nNow ask a question…`;
+      answerEl.textContent =
+        `已上傳：${j.filename}\n頁數/Pages：${j.pages}\n分段/Chunks：${j.chunks}\n語言/Language：${j.lang}\n\n請在下方輸入問題… (Now ask a question…)`;
       citeEl.innerHTML = '';
     }catch(e){
-      setBadge(langBadge, 'Doc: error', 'err');
-      alert('Upload error: ' + e.message);
+      setBadge(langBadge, '文件語言 / Doc: 錯誤 (error)', 'err');
+      alert('上傳錯誤 / Upload error：' + e.message);
     }finally{
-      btnUpload.disabled = false; btnUpload.textContent = 'Upload';
+      btnUpload.disabled = false; btnUpload.textContent = '上傳 (Upload)';
     }
   });
 
   btnAsk.addEventListener('click', async ()=>{
     const question = (qEl.value || '').trim();
-    if(!question){ alert('Please type a question.'); return; }
-    btnAsk.disabled = true; btnAsk.innerHTML = '<span class="spinner"></span> Asking…';
-    answerEl.textContent = '';
-    citeEl.innerHTML = '';
+    if(!question){ alert('請先輸入問題 / Please type a question.'); return; }
+    btnAsk.disabled = true; btnAsk.innerHTML = '<span class="spinner"></span> 詢問中… (Asking…)';
+    answerEl.textContent = ''; citeEl.innerHTML = '';
 
     try{
       const res = await fetch('/ask', {
@@ -319,29 +276,27 @@
       const j = await res.json();
       if(j.error){ throw new Error(j.error); }
 
-      // Update doc/lang badges if returned
       if(j.doc_id_used) setBadge(docBadge, 'doc_id: ' + j.doc_id_used);
-      if(j.language) setBadge(langBadge, 'Doc: ' + j.language, (j.language==='zh'?'ok':''));
+      if(j.language) setBadge(langBadge, '文件語言 / Doc: ' + j.language, (j.language==='zh'?'ok':''));
 
-      // Answer
-      answerEl.textContent = j.answer || '(no answer)';
-      // Citations
+      answerEl.textContent = j.answer || '(無答案 / no answer)';
+
       if(Array.isArray(j.citations)){
         citeEl.innerHTML = j.citations.map(c => {
-          const pg = c.page_hint ? `<b>${c.page_hint}</b>` : '<b>Snippet</b>';
-          const score = (typeof c.score === 'number') ? ` · score ${c.score.toFixed(3)}` : '';
+          const esc = s => (s||'').replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+          const pg = c.page_hint ? `<b>${c.page_hint}</b>` : '<b>片段 / Snippet</b>';
+          const score = (typeof c.score === 'number') ? ` · 分數/score ${Number(c.score).toFixed(3)}` : '';
           return `
             <div class="item">
               <div class="top">${pg}${score ? `<span>${score}</span>` : ''}</div>
-              <div class="excerpt">${(c.excerpt || '').replace(/[&<>]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[s]))}</div>
-            </div>
-          `;
+              <div class="excerpt">${esc(c.excerpt)}</div>
+            </div>`;
         }).join('');
       }
     }catch(e){
-      answerEl.textContent = 'Error: ' + e.message;
+      answerEl.textContent = '錯誤 / Error：' + e.message;
     }finally{
-      btnAsk.disabled = false; btnAsk.textContent = 'Ask';
+      btnAsk.disabled = false; btnAsk.textContent = '詢問 (Ask)';
     }
   });
 
@@ -358,7 +313,6 @@
       'On diagnosis, is 100% of the prevailing sum insured paid as a lump sum?',
       'Does the policy cover 56 critical illnesses?'
     ];
-    // Toggle examples if there is content
     const pick = (qEl.value && Math.random() < .5) ? en : zh;
     qEl.value = pick[Math.floor(Math.random()*pick.length)];
     qEl.focus();
