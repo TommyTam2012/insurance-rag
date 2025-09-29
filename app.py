@@ -36,7 +36,6 @@ except Exception:
 
 # Summarizers (lazy loaded)
 SUM_EN = None
-SUM_ZH = None
 
 # =========================
 # App setup
@@ -140,20 +139,14 @@ def get_sum_en():
         SUM_EN = pipeline("summarization", model="sshleifer/distilbart-cnn-12-6")
     return SUM_EN
 
-def get_sum_zh():
-    global SUM_ZH
-    if SUM_ZH is None:
-        from transformers import pipeline
-        SUM_ZH = pipeline("summarization", model="IDEA-CCNL/Randeng-BART-139M-Chinese")
-    return SUM_ZH
-
 def summarize_text(text: str, lang: str) -> str:
     snippet = (text or "").strip().replace("\n", " ")
     if not snippet:
         return ""
     try:
         if lang == "zh":
-            return get_sum_zh()(snippet, max_length=120, min_length=40, do_sample=False)[0]["summary_text"]
+            # For Chinese, just return snippet (no summarizer)
+            return snippet[:400] + ("…" if len(snippet) > 400 else "")
         else:
             return get_sum_en()(snippet, max_length=160, min_length=60, do_sample=False)[0]["summary_text"]
     except Exception:
@@ -267,14 +260,13 @@ def deps_status():
         },
         "faiss_available": faiss is not None,
         "annoy_available": AnnoyIndex is not None,
-        "summarizers_loaded": {"en": SUM_EN is not None, "zh": SUM_ZH is not None},
+        "summarizers_loaded": {"en": SUM_EN is not None},
     }
 
 @APP.get("/warmup")
 def warmup():
     try:
         _ = get_sum_en()
-        _ = get_sum_zh()
         _ = get_embedder_model("en")
         return {"ok": True}
     except Exception as e:
