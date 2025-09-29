@@ -1,0 +1,9 @@
+fastapi[standard]
+uvicorn[standard]
+python-multipart
+pypdf
+faiss-cpu
+sentence-transformers
+langdetect
+transformers
+torch --index-url https://download.pytorch.org/whl/cpu

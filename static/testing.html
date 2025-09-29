@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Contract AI Assistant – Demo</title>
+<meta name="description" content="Chinese + English Contract AI Assistant Demo (Upload PDF, Ask, Get Cited Answers)" />
+
+<style>
+  :root{
+    --bg:#0b1120;          /* slate-900 */
+    --card:#0f172a;        /* slate-800 */
+    --ink:#e5e7eb;         /* gray-200 */
+    --muted:#94a3b8;       /* slate-400 */
+    --brand:#60a5fa;       /* blue-400 */
+    --accent:#22d3ee;      /* cyan-400 */
+    --ok:#34d399;          /* green-400 */
+    --warn:#fbbf24;        /* amber-400 */
+    --err:#f87171;         /* red-400 */
+    --shadow:0 15px 60px rgba(0,0,0,.35);
+  }
+
+  html,body{height:100%; background:radial-gradient(1200px 700px at 10% -10%, rgba(34,211,238,.10), transparent 60%), radial-gradient(900px 600px at 110% 10%, rgba(96,165,250,.12), transparent 60%), var(--bg); margin:0; color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, "Noto Sans", "PingFang SC", "Microsoft Yahei", Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
+  a{color:var(--brand); text-decoration:none}
+  a:hover{text-decoration:underline}
+
+  .wrap{
+    max-width:1100px; margin:40px auto; padding:0 16px;
+  }
+
+  .hero{
+    display:flex; gap:18px; align-items:center; flex-wrap:wrap;
+    margin:10px 0 24px;
+  }
+  .logo{
+    width:48px; height:48px; border-radius:14px; background:
+      linear-gradient(135deg, var(--brand), var(--accent));
+    box-shadow:0 8px 28px rgba(34,211,238,.25);
+  }
+  .title{
+    font-size: clamp(22px, 4vw, 34px); font-weight:800; letter-spacing:.3px;
+  }
+  .subtitle{
+    color:var(--muted); margin-top:4px; line-height:1.3;
+  }
+
+  .grid{
+    display:grid; grid-template-columns: 1.2fr .8fr; gap:18px;
+  }
+  @media (max-width: 960px){ .grid{ grid-template-columns: 1fr; } }
+
+  .card{
+    background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.06);
+    border-radius:16px; box-shadow: var(--shadow);
+  }
+  .card .hd{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 18px; border-bottom:1px solid rgba(255,255,255,.06);
+    background: radial-gradient(700px 220px at 10% -40%, rgba(96,165,250,.12), transparent 60%);
+    border-top-left-radius:16px; border-top-right-radius:16px;
+  }
+  .card .hd h3{margin:0; font-size:18px; font-weight:700;}
+  .card .bd{ padding:18px; }
+
+  .row{ display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin:12px 0; }
+  .row label{ font-size:14px; color:var(--muted); min-width:120px; }
+  input[type="file"]{
+    color:var(--ink);
+  }
+
+  .btn{
+    appearance:none; border:none; outline:none; cursor:pointer;
+    background: linear-gradient(90deg, var(--brand), var(--accent));
+    color:black; font-weight:800; letter-spacing:.2px;
+    padding:10px 16px; border-radius:12px; box-shadow:0 10px 30px rgba(96,165,250,.28);
+    transition: transform .04s ease, box-shadow .2s ease;
+  }
+  .btn:hover{ transform: translateY(-1px); }
+  .btn:active{ transform: translateY(0); box-shadow:0 6px 18px rgba(96,165,250,.2);}
+  .btn.secondary{
+    background:transparent; color:var(--ink); border:1px solid rgba(255,255,255,.14);
+    box-shadow:none; font-weight:700;
+  }
+
+  .field{
+    position:relative;
+  }
+  .input{
+    width:100%; font-size:16px; color:var(--ink);
+    background: rgba(2,6,23,.6); border:1px solid rgba(255,255,255,.08);
+    border-radius:12px; padding:12px 14px; outline:none;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.02);
+  }
+  .input:focus{
+    border-color: rgba(96,165,250,.5);
+    box-shadow:0 0 0 3px rgba(96,165,250,.18);
+  }
+
+  .meta{
+    display:flex; gap:10px; flex-wrap:wrap; margin:8px 0 0;
+    color:var(--muted); font-size:13px;
+  }
+  .badge{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:6px 10px; border-radius:999px; font-weight:700;
+    background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.08);
+  }
+  .badge.ok{ color:var(--ok); border-color:rgba(52,211,153,.35); background: rgba(52,211,153,.1); }
+  .badge.err{ color:var(--err); border-color:rgba(248,113,113,.35); background: rgba(248,113,113,.1); }
+  .badge.warn{ color:var(--warn); border-color:rgba(251,191,36,.35); background: rgba(251,191,36,.1); }
+
+  .answer{
+    white-space:pre-wrap; line-height:1.55; font-size:16px;
+    background: rgba(2,6,23,.6); border:1px solid rgba(255,255,255,.08);
+    border-radius:12px; padding:14px; margin-top:6px;
+  }
+
+  .cite{
+    margin-top:14px; display:grid; gap:10px;
+  }
+  .cite .item{
+    background: rgba(2,6,23,.65);
+    border:1px solid rgba(255,255,255,.1);
+    border-radius:12px; padding:12px;
+  }
+  .item .top{ display:flex; gap:8px; align-items:center; color:var(--muted); font-size:13px; margin-bottom:6px; }
+  .item .top b{ color:var(--ink); }
+  .item .excerpt{ white-space:pre-wrap; font-size:14px; line-height:1.5; }
+
+  .foot{
+    margin-top:22px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; color:var(--muted); font-size:12px;
+  }
+
+  .spinner{
+    width:18px; height:18px; border-radius:50%;
+    border:3px solid rgba(255,255,255,.24); border-top-color:var(--brand);
+    animation:spin 1s linear infinite; display:inline-block; vertical-align:-3px;
+  }
+  @keyframes spin{ to{ transform: rotate(360deg);} }
+
+  .right .note{
+    color:var(--muted); font-size:13px; line-height:1.45;
+    background: rgba(255,255,255,.04);
+    border:1px dashed rgba(255,255,255,.12);
+    padding:10px 12px; border-radius:12px;
+  }
+
+  .copy{
+    position:absolute; right:8px; top:8px; font-size:12px; padding:6px 10px; opacity:.85;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <div class="logo"></div>
+      <div>
+        <div class="title">Chinese + English Contract AI Assistant</div>
+        <div class="subtitle">Upload a contract (PDF) → Ask a question → Get a cited answer. Multilingual (中文/English), RAG + FAISS, FastAPI backend.</div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- Left: Interaction -->
+      <div class="card">
+        <div class="hd">
+          <h3>Demo Console</h3>
+          <div class="meta" id="meta">
+            <span class="badge" id="healthBadge">API: checking…</span>
+            <span class="badge" id="langBadge">Doc: —</span>
+            <span class="badge" id="docBadge">doc_id: —</span>
+          </div>
+        </div>
+        <div class="bd">
+          <!-- Upload -->
+          <div class="row">
+            <label>1) Upload Contract (PDF)</label>
+            <input id="file" type="file" accept="application/pdf" />
+            <button class="btn" id="btnUpload">Upload</button>
+          </div>
+
+          <!-- Ask -->
+          <div class="row">
+            <label>2) Ask a Question</label>
+            <div class="field" style="flex:1; position:relative;">
+              <textarea id="q" class="input" rows="3" placeholder="e.g., 中文：這份保單的主要不保範圍是什麼？  /  English: What are the main exclusions?"></textarea>
+              <button class="btn secondary copy" id="btnExamples">Examples</button>
+            </div>
+            <button class="btn" id="btnAsk">Ask</button>
+          </div>
+
+          <!-- Answer -->
+          <div class="row" style="align-items:stretch;">
+            <label>Answer</label>
+            <div style="flex:1; position:relative;">
+              <pre id="answer" class="answer">(Upload a PDF, then ask a natural-language question.)</pre>
+            </div>
+          </div>
+
+          <!-- Citations -->
+          <div class="row" style="align-items:flex-start;">
+            <label>Sources</label>
+            <div class="cite" id="cite"></div>
+          </div>
+
+          <div class="foot">
+            <span>Tip: If the answer text looks garbled for some Chinese PDFs, rely on the citations (raw extracted text). OCR can be added later for perfect glyphs.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Helper panel -->
+      <div class="card right">
+        <div class="hd"><h3>Quick Notes</h3></div>
+        <div class="bd">
+          <div class="note">
+            <b>How it works:</b><br>
+            1) PDF → extract text → chunk → embed → FAISS index.<br>
+            2) Question → embed → retrieve top-k chunks.<br>
+            3) Summarize plain answer + show source excerpts.<br><br>
+            <b>Language:</b> Document language auto-detected (CJK ratio + langdetect). English docs use English models; Chinese docs use multilingual + zh-summarizer.<br><br>
+            <b>Privacy:</b> Files are stored locally on the server (demo). For production, add auth and per-tenant namespacing.
+          </div>
+
+          <div style="height:14px"></div>
+
+          <div class="note">
+            <b>Good Chinese questions:</b><br>
+            • 這份保單涵蓋多少種嚴重病況？<br>
+            • 主要不保範圍有哪些？<br>
+            • 退保時可以拿回什麼價值？<br>
+            • 確診受保的嚴重病況時是否一筆過支付當時保額的100%？<br><br>
+            <b>Good English questions:</b><br>
+            • What are the main exclusions?<br>
+            • On surrender, what cash values are payable?<br>
+            • On diagnosis, is 100% of the prevailing sum insured paid?<br>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const el = (id)=>document.getElementById(id);
+  const healthBadge = el('healthBadge');
+  const langBadge = el('langBadge');
+  const docBadge = el('docBadge');
+  const answerEl = el('answer');
+  const citeEl = el('cite');
+  const qEl = el('q');
+  const fileEl = el('file');
+  const btnUpload = el('btnUpload');
+  const btnAsk = el('btnAsk');
+  const btnExamples = el('btnExamples');
+
+  // --- Helpers
+  const setBadge = (node, text, cls) => {
+    node.className = 'badge' + (cls ? ' ' + cls : '');
+    node.textContent = text;
+  };
+
+  // Check API health on load
+  (async function init(){
+    try{
+      const res = await fetch('/health');
+      if(!res.ok) throw new Error('bad status');
+      const j = await res.json();
+      setBadge(healthBadge, 'API: ' + (j.status || 'ok'), 'ok');
+      // Populate last_doc if exists
+      const last = await fetch('/last_doc').then(r=>r.json());
+      if(last.last_doc_id){
+        setBadge(docBadge, 'doc_id: ' + last.last_doc_id);
+      }
+    }catch(e){
+      setBadge(healthBadge, 'API: offline', 'err');
+    }
+  })();
+
+  btnUpload.addEventListener('click', async ()=>{
+    const f = fileEl.files && fileEl.files[0];
+    if(!f){ alert('Please choose a PDF file first.'); return; }
+    btnUpload.disabled = true; btnUpload.innerHTML = '<span class="spinner"></span> Uploading…';
+    setBadge(langBadge, 'Doc: —');
+    setBadge(docBadge, 'doc_id: —');
+
+    try{
+      const fd = new FormData();
+      fd.append('file', f);
+      const res = await fetch('/upload', { method:'POST', body: fd });
+      if(!res.ok) throw new Error('Upload failed');
+      const j = await res.json();
+
+      setBadge(langBadge, 'Doc: ' + (j.lang || '—'), (j.lang==='zh'?'ok':''));
+      setBadge(docBadge, 'doc_id: ' + j.doc_id);
+      answerEl.textContent = `Uploaded: ${j.filename}\nPages: ${j.pages}\nChunks: ${j.chunks}\nLanguage: ${j.lang}\n\nNow ask a question…`;
+      citeEl.innerHTML = '';
+    }catch(e){
+      setBadge(langBadge, 'Doc: error', 'err');
+      alert('Upload error: ' + e.message);
+    }finally{
+      btnUpload.disabled = false; btnUpload.textContent = 'Upload';
+    }
+  });
+
+  btnAsk.addEventListener('click', async ()=>{
+    const question = (qEl.value || '').trim();
+    if(!question){ alert('Please type a question.'); return; }
+    btnAsk.disabled = true; btnAsk.innerHTML = '<span class="spinner"></span> Asking…';
+    answerEl.textContent = '';
+    citeEl.innerHTML = '';
+
+    try{
+      const res = await fetch('/ask', {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({ question, top_k: 4 })
+      });
+      const j = await res.json();
+      if(j.error){ throw new Error(j.error); }
+
+      // Update doc/lang badges if returned
+      if(j.doc_id_used) setBadge(docBadge, 'doc_id: ' + j.doc_id_used);
+      if(j.language) setBadge(langBadge, 'Doc: ' + j.language, (j.language==='zh'?'ok':''));
+
+      // Answer
+      answerEl.textContent = j.answer || '(no answer)';
+      // Citations
+      if(Array.isArray(j.citations)){
+        citeEl.innerHTML = j.citations.map(c => {
+          const pg = c.page_hint ? `<b>${c.page_hint}</b>` : '<b>Snippet</b>';
+          const score = (typeof c.score === 'number') ? ` · score ${c.score.toFixed(3)}` : '';
+          return `
+            <div class="item">
+              <div class="top">${pg}${score ? `<span>${score}</span>` : ''}</div>
+              <div class="excerpt">${(c.excerpt || '').replace(/[&<>]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[s]))}</div>
+            </div>
+          `;
+        }).join('');
+      }
+    }catch(e){
+      answerEl.textContent = 'Error: ' + e.message;
+    }finally{
+      btnAsk.disabled = false; btnAsk.textContent = 'Ask';
+    }
+  });
+
+  btnExamples.addEventListener('click', ()=>{
+    const zh = [
+      '這份保單涵蓋多少種嚴重病況？',
+      '主要不保範圍有哪些？',
+      '退保時可以拿回什麼價值？',
+      '確診受保的嚴重病況時是否一筆過支付當時保額的100%？'
+    ];
+    const en = [
+      'What are the main exclusions?',
+      'On surrender, what cash values are payable?',
+      'On diagnosis, is 100% of the prevailing sum insured paid as a lump sum?',
+      'Does the policy cover 56 critical illnesses?'
+    ];
+    // Toggle examples if there is content
+    const pick = (qEl.value && Math.random() < .5) ? en : zh;
+    qEl.value = pick[Math.floor(Math.random()*pick.length)];
+    qEl.focus();
+  });
+</script>
+</body>
+</html>
